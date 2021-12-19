@@ -44,7 +44,7 @@ pub fn challenge2(left: &String, right: &String) -> Result<String> {
     let mut out_bytes: Vec<u8> = Vec::with_capacity(in_left.len());
 
     for i in 0..in_left.len() {
-        out_bytes[i] = in_left[i] ^ in_right[i];
+        out_bytes.push(in_left[i] ^ in_right[i]);
     }
 
     return hex::vec_u8_to_string(out_bytes);

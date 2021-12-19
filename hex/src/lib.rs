@@ -4,11 +4,20 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync 
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use super::*;
     #[test]
     fn test_string_to_vec_u8() -> Result<()> {
         assert_eq!(vec![1, 2, 3], string_to_vec_u8("010203")?);
         assert_eq!(vec![128, 255], string_to_vec_u8("80ff")?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_vec_u8_to_string() -> Result<()> {
+        assert_eq!("80ff", vec_u8_to_string(vec![128, 255])?);
 
         Ok(())
     }
@@ -40,8 +49,8 @@ fn hexchar_to_u8(c: char) -> Result<u8> {
 pub fn vec_u8_to_string(vec: Vec<u8>) -> Result<String> {
     let mut out_string = String::with_capacity(vec.len() * 2);
     for b in vec {
-        out_string.push((b >> 4) as char);
-        out_string.push((b & 0x0f) as char);
+        out_string.push(char::from_digit(u32::from(b >> 4), 16).unwrap());
+        out_string.push(char::from_digit(u32::from(b & 0x0f), 16).unwrap());
     }
 
     Ok(out_string)
