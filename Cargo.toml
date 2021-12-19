@@ -1,0 +1,15 @@
+[package]
+name = "rust_cryptopals"
+version = "0.1.0"
+authors = ["User420"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+[dependencies.hex]
+path = "./hex"
+
+[dependencies.base64]
+path = "./base64"
