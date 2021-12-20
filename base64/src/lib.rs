@@ -1,5 +1,8 @@
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
+use std::fs::File;
+use std::io::{prelude::*, BufReader};
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -125,4 +128,15 @@ fn u8_to_b64char(b: u8) -> Result<char> {
         63 => Ok('/'),
         _ => Err(format!("Invalid byte {}.", b).into()),
     }
+}
+
+pub fn file_to_vec_u8(path: &str) -> Result<Vec<u8>> {
+    let mut content = String::new();
+    let file = File::open(&path)?;
+    let reader = BufReader::new(file);
+    for line in reader.lines() {
+        content.push_str(line.unwrap().trim());
+    }
+
+    return string_to_vec_u8(&content);
 }

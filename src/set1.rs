@@ -1,9 +1,9 @@
 use std::fs;
 
 extern crate base64;
-use std::str;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
+use std::str;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
@@ -35,7 +35,8 @@ mod tests {
 
     #[test]
     fn test_challenge3() -> Result<()> {
-        let decrypted = challenge3("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736")?;
+        let decrypted =
+            challenge3("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736")?;
 
         println!("Decrypted: {}", decrypted);
         Ok(())
@@ -50,12 +51,10 @@ I go crazy when I hear a cymbal".as_bytes().to_vec(), &"ICE".as_bytes().to_vec()
 
     #[test]
     fn test_hamming_distance() -> Result<()> {
-        assert_eq!(hamming_distance(
-             "this is a test", "wokka wokka!!!")?, 37);
+        assert_eq!(hamming_distance(b"this is a test", b"wokka wokka!!!")?, 37);
 
         Ok(())
     }
-
 }
 
 pub fn challenge1(input: &String) -> Result<String> {
@@ -67,7 +66,11 @@ pub fn challenge2(left: &String, right: &String) -> Result<String> {
     let right_bytes = hex::string_to_vec_u8(right)?;
 
     if right_bytes.len() != right_bytes.len() {
-        panic!("Not same length {} - {}", left_bytes.len(), right_bytes.len());
+        panic!(
+            "Not same length {} - {}",
+            left_bytes.len(),
+            right_bytes.len()
+        );
     }
 
     let out_bytes = do_xor(left_bytes, right_bytes)?;
@@ -104,7 +107,10 @@ pub fn challenge3(input: &str) -> Result<String> {
         println!("Bonus of Set1 challenge3: {}", str::from_utf8(&bonus_clear)?);
     */
 
-    Ok(String::from_utf8(do_single_xor(&hex::string_to_vec_u8(input)?, key)?)?)
+    Ok(String::from_utf8(do_single_xor(
+        &hex::string_to_vec_u8(input)?,
+        key,
+    )?)?)
 }
 
 fn crack_single_xor(input: &Vec<u8>, dict: &[f32; 256]) -> Result<(u8, f32)> {
@@ -152,14 +158,14 @@ pub fn challenge4(path: &str) -> Result<(usize, String, u8)> {
     for (line_number, line) in reader.lines().enumerate() {
         let as_bytes = hex::string_to_vec_u8(&line.as_ref().unwrap())?;
         let (key, score) = crack_single_xor(&as_bytes, &dict)?;
-        if  score > max_score {
+        if score > max_score {
             max_score = score;
             xored_line = line.unwrap();
             max_key = key;
             xored_line_number = line_number;
         }
     }
-    
+
     Ok((xored_line_number, xored_line, max_key))
 }
 
@@ -171,28 +177,90 @@ fn do_vigenere(input: &Vec<u8>, key: &Vec<u8>) -> Result<Vec<u8>> {
     let mut out: Vec<u8> = Vec::with_capacity(input.len());
 
     for (i, b) in input.bytes().enumerate() {
-        out.push(input[i] ^ key[i%key.len()]);
+        out.push(input[i] ^ key[i % key.len()]);
     }
 
     Ok(out)
 }
 
-fn crack_vigenere(path: &str) -> Result<String> {
+fn crack_vigenere(input: &[u8]) -> Result<Vec<u8>> {
+    let dict = build_dict("./data/pride_and_prejudice.txt")?;
+    let key_size = guess_key_size(&input)?;
 
+    println!("Probable key size: {}", key_size);
 
-    Ok(String::new())
-}
+    let mut vectors: Vec<Vec<u8>> = (0..key_size).map(|_| Vec::new()).collect();
 
-fn guess_key_size(input: Vec<u8>) -> Result<u32> {
-    for key_size in 2..40u32 {
-        let left = input[0..key_size];
+    for chunk in input.chunks(key_size) {
+        for (i, byte) in chunk.iter().enumerate() {
+            vectors[i].push(*byte);
+        }
     }
+
+    let mut key = Vec::with_capacity(key_size);
+    for vector in vectors {
+        let (k, _) = crack_single_xor(&vector, &dict)?;
+        key.push(k);
+    }
+
+    Ok(key)
 }
 
-fn hamming_distance(left: &str, right: &str) -> Result<u32> {
+fn guess_key_size(input: &[u8]) -> Result<usize> {
+    let mut min_distance = f32::MAX;
+    let mut best_key_size: usize = 0;
+
+    for key_size in 2..40 {
+        let chunks: Vec<&[u8]> = input.chunks(key_size).take(4).collect();
+
+        let mut distance = 0.0f32;
+
+        for i in 0..4 {
+            for j in i..4 {
+                distance += hamming_distance(chunks[i], chunks[j])? as f32;
+            }
+        }
+
+        distance /= key_size as f32;
+
+        if distance < min_distance {
+            min_distance = distance;
+            best_key_size = key_size;
+        }
+    }
+
+    println!(
+        "Guessed key size {} with min distance {}",
+        best_key_size, min_distance
+    );
+
+    Ok(best_key_size)
+}
+
+fn hamming_distance(left: &[u8], right: &[u8]) -> Result<u32> {
     if left.len() != right.len() {
         panic!("Not same length: {} - {}", left.len(), right.len())
     }
 
-    Ok((0..left.len()).map(|i| (left.as_bytes()[i] ^ right.as_bytes()[i]).count_ones()).sum())
+    Ok((0..left.len())
+        .map(|i| (left[i] ^ right[i]).count_ones())
+        .sum())
+}
+
+pub fn challenge6() -> Result<()> {
+    let input = base64::file_to_vec_u8("./data/set_1_challenge_6.txt")?;
+    let key = crack_vigenere(&input)?;
+
+    println!(
+        "Chall 6 key: [{}]",
+        str::from_utf8(&key).to_owned()?.to_string()
+    );
+
+    let plain = do_vigenere(&input, &key)?;
+    println!(
+        "Decrypted: {}",
+        str::from_utf8(&plain).to_owned()?.to_string()
+    );
+
+    Ok(())
 }
