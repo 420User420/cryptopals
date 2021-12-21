@@ -1,8 +1,12 @@
 use std::fs;
 
 extern crate base64;
+use openssl::aes::AesKey;
+use openssl::encrypt;
+use openssl::symm;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
+
 use std::str;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
@@ -256,11 +260,66 @@ pub fn challenge6() -> Result<()> {
         str::from_utf8(&key).to_owned()?.to_string()
     );
 
-    let plain = do_vigenere(&input, &key)?;
-    println!(
-        "Decrypted: {}",
-        str::from_utf8(&plain).to_owned()?.to_string()
-    );
+    /*
+        let plain = do_vigenere(&input, &key)?;
+        println!(
+            "Decrypted: {}",
+            str::from_utf8(&plain).to_owned()?.to_string()
+        );
+    */
 
     Ok(())
 }
+
+pub fn challenge7() -> Result<()> {
+
+    let input = base64::file_to_vec_u8("data/set_1_challenge_7.txt")?;
+    let key = b"YELLOW SUBMARINE";
+
+    let out = do_AES_128_ECB(&input, key)?;
+
+    // println!("Challenge 7: {}", str::from_utf8(&out).to_owned()?.to_string());
+
+    Ok(())
+
+}
+
+fn do_AES_128_ECB(input: &[u8], key: &[u8]) -> Result<Vec<u8>> {
+    let cipher = openssl::symm::Cipher::aes_128_ecb();
+
+    let out = openssl::symm::decrypt(cipher, key, None, input)?;
+
+    Ok(out)
+}
+
+pub fn challenge8() -> Result<()> {
+    let file = File::open("data/set_1_challenge_8.txt")?;
+    let reader = BufReader::new(file);
+
+    for (line_number, line) in reader.lines().map(|line| line.unwrap()).enumerate() {
+        let as_bytes = hex::string_to_vec_u8(&line)?;
+        let mut chunks: Vec<_> = as_bytes.chunks(16).collect();
+        let len = chunks.len();
+        chunks.sort();
+        chunks.dedup();
+        if chunks.len() != len {
+            println!("Line #{} contains duplicate blocks: {}", line_number + 1, line);
+        }
+    }
+
+    Ok(())
+}
+
+/*
+    Line #133
+d880619740a8a19b7840a8a31c810a3d
+08649af70dc06f4fd5d2d69c744cd283 <
+e2dd052f6b641dbf9d11b0348542bb57
+08649af70dc06f4fd5d2d69c744cd283 <
+9475c9dfdbc1d46597949d9c7e82bf5a
+08649af70dc06f4fd5d2d69c744cd283 <
+97a93eab8d6aecd566489154789a6b03
+08649af70dc06f4fd5d2d69c744cd283 <
+d403180c98c8f6db1f2a3f9c4040deb0
+ab51b29933f2c123c58386b06fba186a
+ */

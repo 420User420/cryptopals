@@ -36,5 +36,9 @@ I go crazy when I hear a cymbal"
 
     let set1_chall6 = challenge6()?;
 
+    let set1_chall7  = challenge7()?;
+
+    let set1_chall8 = challenge8()?;
+
     Ok(())
 }
