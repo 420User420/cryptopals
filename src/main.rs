@@ -1,10 +1,18 @@
 mod set1;
+mod set2;
 
 use crate::set1::*;
+use crate::set2::*;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
 fn main() -> Result<()> {
+    // set1();
+    set2()?;
+    Ok(())
+}
+
+fn set1() -> Result<()> {
     let set1_chall1 = challenge1(&"49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d".to_string())?;
     println!("Answer of Set1 challenge1: {}", set1_chall1);
 
@@ -34,11 +42,24 @@ I go crazy when I hear a cymbal"
     )?;
     println!("Answer of Set1 challenge5: {}", set1_chall5);
 
-    let set1_chall6 = challenge6()?;
+    // challenge6()?;
 
-    let set1_chall7  = challenge7()?;
+    let set1_chall7 = challenge7()?;
+    // println!("Challenge 7: {}", set1_chall7);
 
     let set1_chall8 = challenge8()?;
+
+    Ok(())
+}
+
+fn set2() -> Result<()> {
+    let set2_chall09 = challenge09()?;
+    println!("Challenge 09: {:?}", set2_chall09);
+
+    let set2_chall10 = challenge10()?;
+    // println!("Challenge 10: {}", set2_chall10);
+    //
+    let set2_chall11 = challenge11()?;
 
     Ok(())
 }

@@ -46,12 +46,12 @@ fn hexchar_to_u8(c: char) -> Result<u8> {
     }
 }
 
-pub fn vec_u8_to_string(vec: Vec<u8>) -> Result<String> {
+pub fn vec_u8_to_string(vec: Vec<u8>) -> String {
     let mut out_string = String::with_capacity(vec.len() * 2);
     for b in vec {
         out_string.push(char::from_digit(u32::from(b >> 4), 16).unwrap());
         out_string.push(char::from_digit(u32::from(b & 0x0f), 16).unwrap());
     }
 
-    Ok(out_string)
+    out_string
 }

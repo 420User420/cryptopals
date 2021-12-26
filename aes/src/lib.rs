@@ -1,5 +1,5 @@
+use std::fmt;
 // use openssl::symm;
-
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
 #[cfg(test)]
@@ -53,6 +53,20 @@ mod tests {
     }
 }
 
+pub enum MODE {
+    ECB,
+    CBC,
+}
+
+impl fmt::Display for MODE {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            MODE::CBC => write!(f, "CBC Mode"),
+            MODE::ECB => write!(f, "ECB Mode"),
+        }
+    }
+}
+
 fn do_xor(left: &[u8], right: &[u8]) -> Result<Vec<u8>> {
     if left.len() != right.len() {
         panic!("Not same length {} - {}", left.len(), right.len());
@@ -67,7 +81,7 @@ fn do_xor(left: &[u8], right: &[u8]) -> Result<Vec<u8>> {
     Ok(out_bytes)
 }
 
-fn padding_pkcs7(input: &mut Vec<u8>, block_size: usize) -> Result<()> {
+pub fn padding_pkcs7(input: &mut Vec<u8>, block_size: usize) -> Result<()> {
     if (input.len() % block_size) == 0 {
         return Ok(());
     }
@@ -81,7 +95,7 @@ fn padding_pkcs7(input: &mut Vec<u8>, block_size: usize) -> Result<()> {
     Ok(())
 }
 
-fn decrypt_aes_128_block(input: &[u8], key: &[u8]) -> Result<Vec<u8>> {
+pub fn decrypt_aes_128_block(input: &[u8], key: &[u8]) -> Result<Vec<u8>> {
     if input.len() != 16 {
         panic!("Input length should be 16, is {}.", input.len());
     }
@@ -96,7 +110,7 @@ fn decrypt_aes_128_block(input: &[u8], key: &[u8]) -> Result<Vec<u8>> {
     Ok(out)
 }
 
-fn decrypt_aes_128_ecb(input: &[u8], key: &[u8]) -> Result<Vec<u8>> {
+pub fn decrypt_aes_128_ecb(input: &[u8], key: &[u8]) -> Result<Vec<u8>> {
     if input.len() % 16 != 0 {
         panic!(
             "Cipher length should be a multiple of 16, is {}.",
@@ -113,7 +127,7 @@ fn decrypt_aes_128_ecb(input: &[u8], key: &[u8]) -> Result<Vec<u8>> {
     Ok(out)
 }
 
-fn encrypt_aes_128_block(input: &[u8], key: &[u8]) -> Result<Vec<u8>> {
+pub fn encrypt_aes_128_block(input: &[u8], key: &[u8]) -> Result<Vec<u8>> {
     if input.len() != 16 {
         panic!("Input length should be 16, is {}.", input.len());
     }
@@ -125,7 +139,7 @@ fn encrypt_aes_128_block(input: &[u8], key: &[u8]) -> Result<Vec<u8>> {
     Ok(out)
 }
 
-fn encrypt_aes_128_ecb(input: &[u8], key: &[u8]) -> Result<Vec<u8>> {
+pub fn encrypt_aes_128_ecb(input: &[u8], key: &[u8]) -> Result<Vec<u8>> {
     let mut vec_input = input.to_vec();
     padding_pkcs7(&mut vec_input, 16)?;
     let mut out = Vec::new();
@@ -137,7 +151,7 @@ fn encrypt_aes_128_ecb(input: &[u8], key: &[u8]) -> Result<Vec<u8>> {
     Ok(out)
 }
 
-fn encrypt_aes_128_cbc(input: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>> {
+pub fn encrypt_aes_128_cbc(input: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>> {
     if iv.len() != 16 {
         panic!("Invalid IV size, should be 16, is {}.", iv.len());
     }
@@ -160,7 +174,7 @@ fn encrypt_aes_128_cbc(input: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>> {
     Ok(cipher)
 }
 
-fn decrypt_aes_128_cbc(input: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>> {
+pub fn decrypt_aes_128_cbc(input: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>> {
     if iv.len() != 16 {
         panic!("Invalid IV size, should be 16, is {}.", iv.len());
     }

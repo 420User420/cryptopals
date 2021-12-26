@@ -79,7 +79,7 @@ pub fn challenge2(left: &String, right: &String) -> Result<String> {
 
     let out_bytes = do_xor(left_bytes, right_bytes)?;
 
-    hex::vec_u8_to_string(out_bytes)
+    Ok(hex::vec_u8_to_string(out_bytes))
 }
 
 fn do_xor(left: Vec<u8>, right: Vec<u8>) -> Result<Vec<u8>> {
@@ -174,13 +174,13 @@ pub fn challenge4(path: &str) -> Result<(usize, String, u8)> {
 }
 
 pub fn challenge5(input: &Vec<u8>, key: &Vec<u8>) -> Result<String> {
-    Ok(hex::vec_u8_to_string(do_vigenere(input, key)?)?)
+    Ok(hex::vec_u8_to_string(do_vigenere(input, key)?))
 }
 
 fn do_vigenere(input: &Vec<u8>, key: &Vec<u8>) -> Result<Vec<u8>> {
     let mut out: Vec<u8> = Vec::with_capacity(input.len());
 
-    for (i, b) in input.bytes().enumerate() {
+    for i in 0..input.len() {
         out.push(input[i] ^ key[i % key.len()]);
     }
 
@@ -254,37 +254,27 @@ fn hamming_distance(left: &[u8], right: &[u8]) -> Result<u32> {
 pub fn challenge6() -> Result<()> {
     let input = base64::file_to_vec_u8("./data/set_1_challenge_6.txt")?;
     let key = crack_vigenere(&input)?;
+    let plain = do_vigenere(&input, &key)?;
 
+    println!("Key: {}", str::from_utf8(&key).to_owned()?.to_string());
     println!(
-        "Chall 6 key: [{}]",
-        str::from_utf8(&key).to_owned()?.to_string()
+        "Decrypted: {}",
+        str::from_utf8(&plain).to_owned()?.to_string()
     );
-
-    /*
-        let plain = do_vigenere(&input, &key)?;
-        println!(
-            "Decrypted: {}",
-            str::from_utf8(&plain).to_owned()?.to_string()
-        );
-    */
 
     Ok(())
 }
 
-pub fn challenge7() -> Result<()> {
-
+pub fn challenge7() -> Result<String> {
     let input = base64::file_to_vec_u8("data/set_1_challenge_7.txt")?;
     let key = b"YELLOW SUBMARINE";
 
-    let out = do_AES_128_ECB(&input, key)?;
+    let out = decrypt_AES_128_ECB(&input, key)?;
 
-    // println!("Challenge 7: {}", str::from_utf8(&out).to_owned()?.to_string());
-
-    Ok(())
-
+    Ok(str::from_utf8(&out).to_owned()?.to_string())
 }
 
-fn do_AES_128_ECB(input: &[u8], key: &[u8]) -> Result<Vec<u8>> {
+fn decrypt_AES_128_ECB(input: &[u8], key: &[u8]) -> Result<Vec<u8>> {
     let cipher = openssl::symm::Cipher::aes_128_ecb();
 
     let out = openssl::symm::decrypt(cipher, key, None, input)?;
@@ -303,7 +293,11 @@ pub fn challenge8() -> Result<()> {
         chunks.sort();
         chunks.dedup();
         if chunks.len() != len {
-            println!("Line #{} contains duplicate blocks: {}", line_number + 1, line);
+            println!(
+                "Line #{} contains duplicate blocks: {}",
+                line_number + 1,
+                line
+            );
         }
     }
 
