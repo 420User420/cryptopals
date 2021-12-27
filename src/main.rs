@@ -61,5 +61,7 @@ fn set2() -> Result<()> {
     //
     let set2_chall11 = challenge11()?;
 
+    let set2_chall12 = challenge12()?;
+
     Ok(())
 }

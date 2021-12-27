@@ -282,17 +282,22 @@ fn decrypt_AES_128_ECB(input: &[u8], key: &[u8]) -> Result<Vec<u8>> {
     Ok(out)
 }
 
+pub fn detect_ecb(input: &Vec<u8>) -> bool {
+    let mut chunks: Vec<_> = input.chunks(16).collect();
+    let len = chunks.len();
+    chunks.sort();
+    chunks.dedup();
+
+    chunks.len() != len
+}
+
 pub fn challenge8() -> Result<()> {
     let file = File::open("data/set_1_challenge_8.txt")?;
     let reader = BufReader::new(file);
 
     for (line_number, line) in reader.lines().map(|line| line.unwrap()).enumerate() {
         let as_bytes = hex::string_to_vec_u8(&line)?;
-        let mut chunks: Vec<_> = as_bytes.chunks(16).collect();
-        let len = chunks.len();
-        chunks.sort();
-        chunks.dedup();
-        if chunks.len() != len {
+        if detect_ecb(&as_bytes) == true {
             println!(
                 "Line #{} contains duplicate blocks: {}",
                 line_number + 1,

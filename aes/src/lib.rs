@@ -58,6 +58,25 @@ pub enum MODE {
     CBC,
 }
 
+impl PartialEq for MODE {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (MODE::ECB, MODE::ECB) => true,
+            (MODE::CBC, MODE::CBC) => true,
+            _ => false,
+        }
+    }
+}
+
+impl fmt::Debug for MODE {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            MODE::CBC => write!(f, "CBC Mode"),
+            MODE::ECB => write!(f, "ECB Mode"),
+        }
+    }
+}
+
 impl fmt::Display for MODE {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
