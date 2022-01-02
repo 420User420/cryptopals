@@ -4,7 +4,8 @@ extern crate hex;
 
 use crate::set1::detect_ecb;
 use aes_oracle::*;
-use std::io::Read;
+use std::io::{Read, Write};
+use std::{thread, time};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
@@ -101,22 +102,70 @@ pub fn challenge12() -> Result<()> {
         false => panic!("Oracle should be ECB and was not detected as such."),
     }
 
-    let one_short_len = block_size - (suffix.len() % block_size) - 1;
+    let mut plaintext: Vec<u8> = Vec::new();
 
-    let mut block_dict: Vec<&[u8]>;
+    let dict = build_dict(&plaintext, &oracle, block_size)?;
+    let payload = vec![0u8; block_size - 1];
+    let c = oracle.encrypt(&payload)?[0..block_size].to_vec();
+    let first_byte = find_char_in_dict(&dict, &c)?;
 
-    for i in 0..256 {
-        let mut payload = vec![0u8; one_short_len + 1];
-        payload[one_short_len] = i as u8;
+    println!("First byte: {} - {}", first_byte as char, first_byte);
 
-        let c = oracle.encrypt(&payload)?;
-
-        block_dict.push(c.take(block_size));
+    while plaintext.len() < suffix.len() {
+        // Build the guessing dictionary
+        let dict = build_dict(&plaintext, &oracle, block_size)?;
+        // Build the payload
+        let payload = vec![0u8; (block_size - plaintext.len() % block_size - 1)];
+        // Get the first block out of the cipher
+        let start = plaintext.len() / block_size * block_size;
+        let block = &oracle.encrypt(&payload)?[start..start + block_size];
+        // Add found byte to plaintext
+        let found_char = find_char_in_dict(&dict, &block)?;
+        plaintext.push(found_char);
+        // Print
+        print!("{}", found_char as char);
+        std::io::stdout().flush().expect("some error message");
+        thread::sleep(time::Duration::from_millis(10));
     }
 
+    println!();
     println!("---- [END] Challenge 12 ----");
 
     Ok(())
+}
+
+pub fn find_char_in_dict(dict: &Vec<Vec<u8>>, block: &[u8]) -> Result<u8> {
+    // Run through the guessing dict and find which byte it was
+    for i in 0..256 {
+        let mut good = true;
+        for (j, byte) in block.iter().enumerate() {
+            if *byte != dict[i][j] {
+                good = false;
+                break;
+            }
+        }
+        if good == true {
+            return Ok(i as u8);
+        }
+    }
+
+    panic!("Could not find next byte.")
+}
+
+pub fn build_dict(known: &Vec<u8>, oracle: &AES_Oracle, block_size: usize) -> Result<Vec<Vec<u8>>> {
+    let mut out = vec![Vec::new(); 256];
+    let mut block = vec![0u8; block_size];
+
+    block.extend_from_slice(known);
+    block.push(0u8);
+    block = block.iter().cloned().rev().take(block_size).rev().collect();
+
+    for i in 0..256 {
+        block[block_size - 1] = i as u8;
+        out[i] = oracle.encrypt(&block)?[0..block_size].to_vec();
+    }
+
+    Ok(out)
 }
 
 pub fn detect_blocksize(oracle: &aes_oracle::AES_Oracle) -> Result<usize> {
