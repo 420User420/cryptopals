@@ -53,15 +53,17 @@ I go crazy when I hear a cymbal"
 }
 
 fn set2() -> Result<()> {
-    let set2_chall09 = challenge09()?;
-    println!("Challenge 09: {:?}", set2_chall09);
+    // let set2_chall09 = challenge09()?;
+    // println!("Challenge 09: {:?}", set2_chall09);
 
-    let set2_chall10 = challenge10()?;
+    // let set2_chall10 = challenge10()?;
     // println!("Challenge 10: {}", set2_chall10);
     //
-    let set2_chall11 = challenge11()?;
+    // let set2_chall11 = challenge11()?;
 
-    let set2_chall12 = challenge12()?;
+    // let set2_chall12 = challenge12()?;
+
+    let set2_chall13 = challenge13()?;
 
     Ok(())
 }

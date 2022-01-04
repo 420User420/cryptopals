@@ -9,6 +9,8 @@ edition = "2018"
 [dependencies]
 # openssl = { version = "0.10", features = ["vendored"] }
 openssl = "0.10"
+rand = "0.8.4"
+url = "2.2.2"
 
 [dependencies.hex]
 path = "./hex"
