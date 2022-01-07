@@ -23,3 +23,6 @@ path = "./aes"
 
 [dependencies.aes_oracle]
 path = "./aes_oracle"
+
+[dependencies.cookie_oracle]
+path = "./cookie_oracle/"
