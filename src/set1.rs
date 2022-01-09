@@ -9,10 +9,12 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync 
 
 pub fn challenge1() -> Result<()> {
     let input = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d";
+    println!("----- [START] Challenge 1 -----");
     println!(
         "Answer of Set1 Challenge1: {}",
         base64::vec_u8_to_string(hex::string_to_vec_u8(input)?)?
     );
+    println!("----- [END] Challenge 1 -----");
 
     Ok(())
 }
@@ -33,10 +35,12 @@ pub fn challenge2() -> Result<()> {
 
     let out_bytes = do_xor(left_bytes, right_bytes)?;
 
+    println!("----- [END] Challenge 2 -----");
     println!(
         "Answer of Set1 challenge2: {}",
         hex::vec_u8_to_string(out_bytes)
     );
+    println!("----- [END] Challenge 2 -----");
 
     Ok(())
 }
@@ -48,10 +52,12 @@ pub fn challenge3() -> Result<()> {
     let dict = build_charstat_dict("data/alice_wonderlands.txt")?;
     let (key, _) = crack_single_xor(&hex::string_to_vec_u8(input)?, &dict)?;
 
+    println!("----- [START] Challenge 3 -----");
     println!(
         "Answer of Set1 challenge3: {}",
         String::from_utf8(do_single_xor(&hex::string_to_vec_u8(input)?, key,)?)?
     );
+    println!("----- [END] Challenge 3 -----");
 
     Ok(())
 }
@@ -78,6 +84,7 @@ pub fn challenge4() -> Result<()> {
         }
     }
 
+    println!("----- [START] Challenge 4 -----");
     println!("XORed line number: {}", xored_line_number);
     println!("XORed line raw: {}", xored_line);
     println!("Max scored key: {}", max_key);
@@ -88,6 +95,7 @@ pub fn challenge4() -> Result<()> {
             max_key
         )?)?
     );
+    println!("----- [END] Challenge 4 -----");
 
     Ok(())
 }
@@ -96,6 +104,7 @@ pub fn challenge5() -> Result<()> {
     let input = "Burning 'em, if you ain't quick and nimble I go crazy when I hear a cymbal";
     let key = "ICE";
 
+    println!("----- [START] Challenge 5 -----");
     println!(
         "Answer of Set1 challenge5: {}",
         hex::vec_u8_to_string(do_vigenere(
@@ -103,6 +112,7 @@ pub fn challenge5() -> Result<()> {
             &key.as_bytes().to_vec()
         )?)
     );
+    println!("----- [END] Challenge 5 -----");
 
     Ok(())
 }
@@ -112,11 +122,13 @@ pub fn challenge6() -> Result<()> {
     let key = crack_vigenere(&input)?;
     let plain = do_vigenere(&input, &key)?;
 
+    println!("----- [START] Challenge 6 -----");
     println!("Key: {}", str::from_utf8(&key).to_owned()?.to_string());
     println!(
-        "Decrypted: {}",
-        str::from_utf8(&plain).to_owned()?.to_string()
+        "Decrypted: {}...",
+        str::from_utf8(&plain.as_slice()[0..20])?
     );
+    println!("----- [END] Challenge 6 -----");
 
     Ok(())
 }
@@ -127,10 +139,12 @@ pub fn challenge7() -> Result<()> {
 
     let out = decrypt_aes_128_ecb(&input, key)?;
 
+    println!("----- [START] Challenge 7 -----");
     println!(
-        "Answer of Set 1 Challenge 7: {}",
-        str::from_utf8(&out).to_owned()?.to_string()
+        "Answer of Set 1 Challenge 7: {}...",
+        str::from_utf8(&out.as_slice()[0..20])?
     );
+    println!("----- [END] Challenge 7 -----");
 
     Ok(())
 }
@@ -139,6 +153,7 @@ pub fn challenge8() -> Result<()> {
     let file = File::open("data/set_1_challenge_8.txt")?;
     let reader = BufReader::new(file);
 
+    println!("----- [START] Challenge 8 -----");
     for (line_number, line) in reader.lines().map(|line| line.unwrap()).enumerate() {
         let as_bytes = hex::string_to_vec_u8(&line)?;
         if detect_ecb(&as_bytes) == true {
@@ -149,6 +164,7 @@ pub fn challenge8() -> Result<()> {
             );
         }
     }
+    println!("----- [END] Challenge 8 -----");
 
     Ok(())
 }

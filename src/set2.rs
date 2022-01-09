@@ -6,8 +6,6 @@ extern crate hex;
 
 use aes_oracle::*;
 use rust_cryptopals::*;
-use std::io::Write;
-use std::{thread, time};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
@@ -28,10 +26,12 @@ pub fn challenge10() -> Result<()> {
 
     let clear = aes::decrypt_aes_128_cbc(&input, key, &iv)?;
 
+    println!("---- [START] Challenge 10 ----");
     println!(
-        "Answer of Set 2 Challenge 10: {}",
-        String::from_utf8(clear)?
+        "Answer of Set 2 Challenge 10: {}...",
+        String::from_utf8(clear.as_slice()[0..20].to_vec())?
     );
+    println!("---- [END] Challenge 10 ----");
 
     Ok(())
 }
@@ -41,10 +41,10 @@ pub fn challenge11() -> Result<()> {
 
     let mode = detect_encryption_mode(&oracle)?;
 
-    println!("---- [START] Challenge 12 ----");
+    println!("---- [START] Challenge 11 ----");
     println!("Oracle:\n{}", oracle);
     println!("Detected: {}", mode);
-    println!("---- [END] Challenge 12 ----");
+    println!("---- [END] Challenge 11 ----");
 
     Ok(())
 }
@@ -89,13 +89,12 @@ pub fn challenge12() -> Result<()> {
         // Add found byte to plaintext
         let found_char = find_char_in_dict(&dict, &block)?;
         plaintext.push(found_char);
-        // Print
-        print!("{}", found_char as char);
-        std::io::stdout().flush().expect("some error message");
-        thread::sleep(time::Duration::from_millis(10));
     }
 
-    println!();
+    println!(
+        "Answer of Set 2 Challenge 12: {}...",
+        String::from_utf8(plaintext.as_slice()[0..20].to_vec())?
+    );
     println!("---- [END] Challenge 12 ----");
 
     Ok(())
