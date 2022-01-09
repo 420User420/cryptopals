@@ -6,11 +6,20 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+# [lib]
+# name = "cryptopals"
+# path = "src/lib.rs"
+
+# [set1]
+# name = "set1"
+# path = "src/set1.rs"
+
+[[test]]
+name = "custom"
+path = "src/tests.rs"
+
 [dependencies]
-# openssl = { version = "0.10", features = ["vendored"] }
 openssl = "0.10"
-rand = "0.8.4"
-url = "2.2.2"
 
 [dependencies.hex]
 path = "./hex"
@@ -25,4 +34,4 @@ path = "./aes"
 path = "./aes_oracle"
 
 [dependencies.cookie_oracle]
-path = "./cookie_oracle/"
+path = "./cookie_oracle"

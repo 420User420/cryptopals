@@ -1,8 +1,17 @@
 [package]
 name = "cookie_oracle"
 version = "0.1.0"
-edition = "2021"
+edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+url = "2.2.2"
+rand = "0.8.4"
+
+[dependencies.hex]
+path = "../hex"
+
+[dependencies.aes]
+path = "../aes"
+

@@ -1,49 +1,15 @@
 extern crate aes;
 extern crate aes_oracle;
+extern crate cookie_oracle;
+
 extern crate hex;
 
-use crate::set1::detect_ecb;
+use crate::cryptopals;
 use aes_oracle::*;
-use rand::Rng;
-use std::borrow::Cow;
-use std::fmt;
 use std::io::{Read, Write};
 use std::{thread, time};
-use url::Url;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_challenge09() -> Result<()> {
-        let mut input: Vec<u8> = vec![0, 1, 2, 3, 4];
-        aes::padding_pkcs7(&mut input, 8)?;
-
-        assert_eq!([0, 1, 2, 3, 4, 3, 3, 3].as_ref(), input);
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_challenge10() -> Result<()> {
-        Ok(())
-    }
-
-    #[test]
-    fn test_challenge11() -> Result<()> {
-        for _ in 0..500 {
-            let oracle = aes_oracle::new(None, None);
-            let mode = detect_encryption_mode(&oracle)?;
-
-            assert_eq!(oracle.mode, mode);
-        }
-
-        Ok(())
-    }
-}
 
 pub fn challenge09() -> Result<String> {
     let mut input = b"YELLOW SUBMARINE".to_vec();
@@ -65,6 +31,7 @@ pub fn challenge10() -> Result<String> {
 
 pub fn challenge11() -> Result<aes::MODE> {
     let oracle = aes_oracle::new(None, None);
+
     let mode = detect_encryption_mode(&oracle)?;
 
     println!("---- [START] Challenge 12 ----");
@@ -73,17 +40,6 @@ pub fn challenge11() -> Result<aes::MODE> {
     println!("---- [END] Challenge 12 ----");
 
     Ok(mode)
-}
-
-pub fn detect_encryption_mode(oracle: &aes_oracle::AES_Oracle) -> Result<aes::MODE> {
-    let input = [0u8; 48];
-
-    let cipher = oracle.encrypt(&input)?;
-
-    match crate::set1::detect_ecb(&cipher) {
-        true => Ok(aes::MODE::ECB),
-        false => Ok(aes::MODE::CBC),
-    }
 }
 
 pub fn challenge12() -> Result<()> {
@@ -99,7 +55,7 @@ pub fn challenge12() -> Result<()> {
 
     // Craft and cipher a 3 times the block size same bytes payload and use it to detect ECB
     let ecb_payload = vec![0u8; 3 * block_size];
-    match crate::set1::detect_ecb(&oracle.encrypt(&ecb_payload)?) {
+    match detect_ecb(&oracle.encrypt(&ecb_payload)?) {
         true => {
             println!("Oracle is in ECB mode.");
         }
@@ -138,79 +94,8 @@ pub fn challenge12() -> Result<()> {
     Ok(())
 }
 
-pub fn find_char_in_dict(dict: &Vec<Vec<u8>>, block: &[u8]) -> Result<u8> {
-    // Run through the guessing dict and find which byte it was
-    for i in 0..256 {
-        let mut good = true;
-        for (j, byte) in block.iter().enumerate() {
-            if *byte != dict[i][j] {
-                good = false;
-                break;
-            }
-        }
-        if good == true {
-            return Ok(i as u8);
-        }
-    }
-
-    panic!("Could not find next byte.")
-}
-
-pub fn build_dict(known: &Vec<u8>, oracle: &AES_Oracle, block_size: usize) -> Result<Vec<Vec<u8>>> {
-    let mut out = vec![Vec::new(); 256];
-    let mut block = vec![0u8; block_size];
-
-    block.extend_from_slice(known);
-    block.push(0u8);
-    block = block.iter().cloned().rev().take(block_size).rev().collect();
-
-    for i in 0..256 {
-        block[block_size - 1] = i as u8;
-        out[i] = oracle.encrypt(&block)?[0..block_size].to_vec();
-    }
-
-    Ok(out)
-}
-
-fn detect_blocksize(oracle: &aes_oracle::AES_Oracle) -> Result<usize> {
-    let mut payload = Vec::new();
-
-    // Get the size of the initial cipher
-    let zero_len = oracle.encrypt(&payload)?.len();
-    /*
-    xxxx xxxx x___      -> 12
-    --------------
-    xxxx xxxx xa__      -> 12
-    xxxx xxxx xaa_      -> 12
-    xxxx xxxx xaaa      -> 12
-    xxxx xxxx xaaa a___ -> 16
-    --------------
-    Block size: 16 - 12 = 4
-     */
-    loop {
-        // Then, cipher after adding bytes until the size of the cipher is
-        // is different than the initial cipher's length, it means that we reached
-        // the padding size and hence that we can guess the block size.
-        payload.push(0u8);
-        let len = oracle.encrypt(&payload)?.len();
-
-        if len != zero_len {
-            return Ok(len - zero_len);
-        }
-    }
-}
-
 pub fn challenge13() -> Result<()> {
-    let profile = profile_for("foo@bar.com")?;
-
-    println!("Profile: {}", profile.encode()?);
-    println!("Profile admin: {}", profile.is_admin());
-    println!("Profile enc: {}", profile.encrypt()?);
-
-    let profile1 = Profile::from_encoded(&profile.encode()?)?;
-
-    println!("Profile1: {}", profile1.encode()?);
-    println!("Profile1 admin: {}", profile1.is_admin());
+    let oracle = cookie_oracle::ProfileOracle::new();
 
     Ok(())
 }

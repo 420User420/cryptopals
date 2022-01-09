@@ -60,7 +60,7 @@ pub fn new(fixed_mode: Option<aes::MODE>, fixed_suffix: Option<&[u8]>) -> AES_Or
             for i in 0..16 {
                 val[i] = rng.gen();
             }
-            iv = some(val);
+            iv = Some(val);
         }
     }
 

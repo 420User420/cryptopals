@@ -1,14 +1,24 @@
+use rand::Rng;
+use std::borrow::Cow;
+use std::fmt;
+use url::Url;
+
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
+
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
+    fn test_profile_eats_special_chars() {
+        let profile = profile_for("a&role=admin@a.com");
+
+        assert_eq!(profile.email, "aroleadmin@a.com");
     }
 }
 
 #[derive(PartialEq)]
-enum Role {
+pub enum Role {
     User,
     Admin,
 }
@@ -32,15 +42,14 @@ impl Role {
     }
 }
 
-struct Profile {
+pub struct Profile {
     email: String,
     uid: u32,
     role: Role,
-    key: Option<[u8; 16]>,
 }
 
 impl Profile {
-    fn encode(&self) -> Result<String> {
+    pub fn encode(&self) -> Result<String> {
         Ok(format!(
             "email={}&uid={}&role={}",
             self.email, self.uid, self.role
@@ -51,9 +60,9 @@ impl Profile {
         self.role == Role::Admin
     }
 
-    pub fn from_encoded(encoded: &str) -> Result<Profile> {
+    pub fn from_encoded(encoded: &str) -> Result<Self> {
         let url_obj = Url::parse(&format!("https://example.com/?{}", encoded))?;
-        let mut pairs = url_obj.query_pairs();
+        let pairs = url_obj.query_pairs();
         let mut email = String::new();
         let mut uid = 0u32;
         let mut role = Role::User;
@@ -67,37 +76,46 @@ impl Profile {
             }
         }
 
-        Ok(Profile {
-            email,
-            uid,
-            role,
-            key: None,
-        })
-    }
-
-    fn encrypt(&self) -> Result<String> {
-        if self.key.is_none() {
-            panic!("Cannot encrypt profile because it has no key.")
-        }
-
-        Ok(hex::vec_u8_to_string(aes::encrypt_aes_128_ecb(
-            &self.encode()?.as_bytes(),
-            &self.key.unwrap(),
-        )?))
+        Ok(Profile { email, uid, role })
     }
 }
 
-fn profile_for(email: &str) -> Result<Profile> {
-    let mut rng = rand::thread_rng();
-    let mut key = [0u8; 16];
-    for i in 0..16 {
-        key[i] = rng.gen();
+pub struct ProfileOracle {
+    key: [u8; 16],
+}
+
+impl ProfileOracle {
+    pub fn new() -> ProfileOracle {
+        let mut rng = rand::thread_rng();
+        let mut key = [0u8; 16];
+        for i in 0..16 {
+            key[i] = rng.gen::<u8>();
+        }
+
+        ProfileOracle { key }
     }
-    let uid = rng.gen();
-    Ok(Profile {
-        email: email.to_string().replace("&", "").replace("=", ""),
-        uid,
-        role: Role::User,
-        key: Some(key),
-    })
+
+    pub fn encrypt_profile(&self, profile: &Profile) -> Result<Vec<u8>> {
+        Ok(aes::encrypt_aes_128_ecb(
+            profile.encode()?.as_bytes(),
+            &self.key,
+        )?)
+    }
+
+    pub fn profile_from_encrypted(&self, enc: &Vec<u8>) -> Result<Profile> {
+        let dec = aes::decrypt_aes_128_ecb(enc, &self.key)?;
+
+        Ok(Profile::from_encoded(&hex::vec_u8_to_string(dec))?)
+    }
+
+    pub fn profile_for(&self, email: &str) -> Profile {
+        let mut rng = rand::thread_rng();
+        let uid = rng.gen::<u32>();
+
+        Profile {
+            email: email.to_string().replace("&", "").replace("=", ""),
+            uid,
+            role: Role::User,
+        }
+    }
 }
