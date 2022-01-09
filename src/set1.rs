@@ -1,18 +1,25 @@
 extern crate base64;
 
-use crate::cryptopals::*;
-
+use rust_cryptopals::*;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
 use std::str;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
-pub fn challenge1(input: &String) -> Result<String> {
-    return base64::vec_u8_to_string(hex::string_to_vec_u8(input)?);
+pub fn challenge1() -> Result<()> {
+    let input = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d";
+    println!(
+        "Answer of Set1 Challenge1: {}",
+        base64::vec_u8_to_string(hex::string_to_vec_u8(input)?)?
+    );
+
+    Ok(())
 }
 
-pub fn challenge2(left: &String, right: &String) -> Result<String> {
+pub fn challenge2() -> Result<()> {
+    let left = "1c0111001f010100061a024b53535009181c";
+    let right = "686974207468652062756c6c277320657965";
     let left_bytes = hex::string_to_vec_u8(left)?;
     let right_bytes = hex::string_to_vec_u8(right)?;
 
@@ -26,27 +33,31 @@ pub fn challenge2(left: &String, right: &String) -> Result<String> {
 
     let out_bytes = do_xor(left_bytes, right_bytes)?;
 
-    Ok(hex::vec_u8_to_string(out_bytes))
+    println!(
+        "Answer of Set1 challenge2: {}",
+        hex::vec_u8_to_string(out_bytes)
+    );
+
+    Ok(())
 }
 
-pub fn challenge3(input: &str) -> Result<String> {
+pub fn challenge3() -> Result<()> {
+    let input = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
+
     // let dict = build_charstat_dict("data/pride_and_prejudice.txt")?;
     let dict = build_charstat_dict("data/alice_wonderlands.txt")?;
     let (key, _) = crack_single_xor(&hex::string_to_vec_u8(input)?, &dict)?;
 
-    /*
-        let bonus = "ETAOIN SHRDLU".as_bytes().to_vec();
-        let bonus_clear = do_single_xor(&bonus, key)?;
-        println!("Bonus of Set1 challenge3: {}", str::from_utf8(&bonus_clear)?);
-    */
+    println!(
+        "Answer of Set1 challenge3: {}",
+        String::from_utf8(do_single_xor(&hex::string_to_vec_u8(input)?, key,)?)?
+    );
 
-    Ok(String::from_utf8(do_single_xor(
-        &hex::string_to_vec_u8(input)?,
-        key,
-    )?)?)
+    Ok(())
 }
 
-pub fn challenge4(path: &str) -> Result<(usize, String, u8)> {
+pub fn challenge4() -> Result<()> {
+    let path = "data/set_1_challenge_4.txt";
     let mut max_score = 0.0f32;
     let mut max_key = 0u8;
     let mut xored_line_number = 0;
@@ -67,11 +78,33 @@ pub fn challenge4(path: &str) -> Result<(usize, String, u8)> {
         }
     }
 
-    Ok((xored_line_number, xored_line, max_key))
+    println!("XORed line number: {}", xored_line_number);
+    println!("XORed line raw: {}", xored_line);
+    println!("Max scored key: {}", max_key);
+    println!(
+        "Decoded line: {}",
+        String::from_utf8(do_single_xor(
+            &hex::string_to_vec_u8(&xored_line)?,
+            max_key
+        )?)?
+    );
+
+    Ok(())
 }
 
-pub fn challenge5(input: &Vec<u8>, key: &Vec<u8>) -> Result<String> {
-    Ok(hex::vec_u8_to_string(do_vigenere(input, key)?))
+pub fn challenge5() -> Result<()> {
+    let input = "Burning 'em, if you ain't quick and nimble I go crazy when I hear a cymbal";
+    let key = "ICE";
+
+    println!(
+        "Answer of Set1 challenge5: {}",
+        hex::vec_u8_to_string(do_vigenere(
+            &input.as_bytes().to_vec(),
+            &key.as_bytes().to_vec()
+        )?)
+    );
+
+    Ok(())
 }
 
 pub fn challenge6() -> Result<()> {
@@ -88,13 +121,18 @@ pub fn challenge6() -> Result<()> {
     Ok(())
 }
 
-pub fn challenge7() -> Result<String> {
+pub fn challenge7() -> Result<()> {
     let input = base64::file_to_vec_u8("data/set_1_challenge_7.txt")?;
     let key = b"YELLOW SUBMARINE";
 
-    let out = decrypt_AES_128_ECB(&input, key)?;
+    let out = decrypt_aes_128_ecb(&input, key)?;
 
-    Ok(str::from_utf8(&out).to_owned()?.to_string())
+    println!(
+        "Answer of Set 1 Challenge 7: {}",
+        str::from_utf8(&out).to_owned()?.to_string()
+    );
+
+    Ok(())
 }
 
 pub fn challenge8() -> Result<()> {

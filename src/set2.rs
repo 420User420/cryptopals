@@ -4,32 +4,39 @@ extern crate cookie_oracle;
 
 extern crate hex;
 
-use crate::cryptopals;
 use aes_oracle::*;
-use std::io::{Read, Write};
+use rust_cryptopals::*;
+use std::io::Write;
 use std::{thread, time};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
-pub fn challenge09() -> Result<String> {
+pub fn challenge09() -> Result<()> {
     let mut input = b"YELLOW SUBMARINE".to_vec();
 
     aes::padding_pkcs7(&mut input, 20)?;
 
-    Ok(String::from_utf8(input)?)
+    println!("Challenge 09: {:?}", String::from_utf8(input)?);
+
+    Ok(())
 }
 
-pub fn challenge10() -> Result<String> {
+pub fn challenge10() -> Result<()> {
     let key = b"YELLOW SUBMARINE";
     let input = base64::file_to_vec_u8("data/set_2_challenge_10.txt")?;
     let iv = [0u8; 16];
 
     let clear = aes::decrypt_aes_128_cbc(&input, key, &iv)?;
 
-    Ok(String::from_utf8(clear)?)
+    println!(
+        "Answer of Set 2 Challenge 10: {}",
+        String::from_utf8(clear)?
+    );
+
+    Ok(())
 }
 
-pub fn challenge11() -> Result<aes::MODE> {
+pub fn challenge11() -> Result<()> {
     let oracle = aes_oracle::new(None, None);
 
     let mode = detect_encryption_mode(&oracle)?;
@@ -39,7 +46,7 @@ pub fn challenge11() -> Result<aes::MODE> {
     println!("Detected: {}", mode);
     println!("---- [END] Challenge 12 ----");
 
-    Ok(mode)
+    Ok(())
 }
 
 pub fn challenge12() -> Result<()> {

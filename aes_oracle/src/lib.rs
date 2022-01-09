@@ -14,7 +14,7 @@ mod tests {
     }
 }
 
-pub struct AES_Oracle {
+pub struct AesOracle {
     pub mode: aes::MODE,
     key: [u8; 16],
     iv: Option<[u8; 16]>,
@@ -26,7 +26,7 @@ pub trait Oracle {
     fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>>;
 }
 
-pub fn new(fixed_mode: Option<aes::MODE>, fixed_suffix: Option<&[u8]>) -> AES_Oracle {
+pub fn new(fixed_mode: Option<aes::MODE>, fixed_suffix: Option<&[u8]>) -> AesOracle {
     let mut rng = rand::thread_rng();
 
     let mode: aes::MODE;
@@ -85,7 +85,7 @@ pub fn new(fixed_mode: Option<aes::MODE>, fixed_suffix: Option<&[u8]>) -> AES_Or
         }
     }
 
-    return AES_Oracle {
+    return AesOracle {
         key,
         iv,
         mode,
@@ -94,7 +94,7 @@ pub fn new(fixed_mode: Option<aes::MODE>, fixed_suffix: Option<&[u8]>) -> AES_Or
     };
 }
 
-impl Oracle for AES_Oracle {
+impl Oracle for AesOracle {
     fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>> {
         let mut true_data = Vec::new();
         match &self.prefix {
@@ -122,7 +122,7 @@ impl Oracle for AES_Oracle {
     }
 }
 
-impl fmt::Display for AES_Oracle {
+impl fmt::Display for AesOracle {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.mode {
             aes::MODE::ECB => write!(
