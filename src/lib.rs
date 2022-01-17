@@ -2,8 +2,7 @@ extern crate aes_oracle;
 extern crate base64;
 extern crate cookie_oracle;
 
-use aes_oracle::*;
-use cookie_oracle::*;
+use oracle::Oracle;
 use std::fs;
 use std::str;
 
@@ -168,12 +167,16 @@ pub fn find_char_in_dict(dict: &Vec<Vec<u8>>, block: &[u8]) -> Result<u8> {
     panic!("Could not find next byte.")
 }
 
-pub fn build_dict(known: &Vec<u8>, oracle: &AesOracle, block_size: usize) -> Result<Vec<Vec<u8>>> {
+pub fn build_dict<T: Oracle>(
+    known: &Vec<u8>,
+    oracle: &T,
+    block_size: usize,
+) -> Result<Vec<Vec<u8>>> {
     let mut out = vec![Vec::new(); 256];
-    let mut block = vec![0u8; block_size];
+    let mut block = vec![65u8; block_size];
 
     block.extend_from_slice(known);
-    block.push(0u8);
+    block.push(65u8);
     block = block.iter().cloned().rev().take(block_size).rev().collect();
 
     for i in 0..256 {
@@ -184,7 +187,7 @@ pub fn build_dict(known: &Vec<u8>, oracle: &AesOracle, block_size: usize) -> Res
     Ok(out)
 }
 
-pub fn detect_encryption_mode(oracle: &aes_oracle::AesOracle) -> Result<aes::MODE> {
+pub fn detect_encryption_mode(oracle: &impl Oracle) -> Result<aes::MODE> {
     let input = [0u8; 48];
 
     let cipher = oracle.encrypt(&input)?;
@@ -195,7 +198,7 @@ pub fn detect_encryption_mode(oracle: &aes_oracle::AesOracle) -> Result<aes::MOD
     }
 }
 
-pub fn detect_blocksize(oracle: &aes_oracle::AesOracle) -> Result<usize> {
+pub fn detect_blocksize(oracle: &impl Oracle) -> Result<usize> {
     let mut payload = Vec::new();
 
     // Get the size of the initial cipher
@@ -223,14 +226,102 @@ pub fn detect_blocksize(oracle: &aes_oracle::AesOracle) -> Result<usize> {
     }
 }
 
-pub fn break_profile_oracle(oracle: &ProfileOracle) -> Result<String> {
-    /*
-     * aaaa aaaa aaaa aaaa
-     * a@a.com&uid=1234
-     *
-     */
+pub fn detect_prefix_blocks_count<T: Oracle>(oracle: &T) -> Result<usize> {
+    let block_size = detect_blocksize(oracle)?;
+    if let Some(result) = oracle
+        .encrypt(&[0])?
+        .chunks(block_size)
+        .zip(oracle.encrypt(&[1])?.chunks(block_size))
+        .position(|(x, y)| x != y)
+    {
+        Ok(result)
+    } else {
+        panic!("Unable to find number of blocks occupied by oracle prefix")
+    }
+}
 
-    let profile = oracle.profile_for("foo@bar.com");
+pub fn detect_prefix_len<T: Oracle>(oracle: &T) -> Result<usize> {
+    let block_size = detect_blocksize(oracle)?;
+    let offset = detect_prefix_blocks_count(oracle)? * block_size;
 
-    Ok(String::new())
+    println!("offset: {}", offset);
+
+    let do_with_constant = |c: u8| -> Result<usize> {
+        let cblock = vec![c; block_size];
+        let initial_block = &oracle.encrypt(&cblock)?[offset..(offset + block_size)];
+        for i in 0..block_size {
+            let current = oracle.encrypt(&cblock[i + 1..])?;
+            if current.len() < offset + block_size
+                || initial_block != &current[offset..(offset + block_size)]
+            {
+                return Ok(i);
+            }
+        }
+        Ok(block_size)
+    };
+
+    Ok(offset + std::cmp::min(do_with_constant(0)?, do_with_constant(1)?))
+}
+
+pub fn detect_suffix_len<T: Oracle>(oracle: &T) -> Result<usize> {
+    let initial_size = oracle.encrypt(&[])?.len();
+    let mut current_size = initial_size;
+    let mut payload = Vec::new();
+
+    while current_size == initial_size {
+        payload.push(0u8);
+        current_size = oracle.encrypt(&payload)?.len();
+    }
+
+    Ok(initial_size - payload.len())
+}
+
+pub fn detect_prefix_plus_suffix_len<T: Oracle>(oracle: &T) -> Result<usize> {
+    let initial_size = oracle.encrypt(&[])?.len();
+    if !detect_padding(oracle)? {
+        return Ok(initial_size);
+    }
+
+    let bs = detect_blocksize(oracle)?;
+
+    let input = vec![0; bs];
+    if let Some(index) = (1..=bs).find(|&i| {
+        if let Ok(ciphertext) = oracle.encrypt(&input[..i]) {
+            initial_size != ciphertext.len()
+        } else {
+            // Should never happen
+            false
+        }
+    }) {
+        Ok(initial_size - index + 1)
+    } else {
+        Err(
+            "length of oracle output did not change, something is wrong with the provided oracle"
+                .into(),
+        )
+    }
+}
+
+pub fn detect_padding<T: Oracle>(oracle: &T) -> Result<bool> {
+    Ok((oracle.encrypt(&[])?.len() - oracle.encrypt(&[0])?.len()) % detect_blocksize(oracle)? == 0)
+}
+
+pub fn recover_ecb_suffix<T: Oracle>(oracle: &T) -> Result<Vec<u8>> {
+    let block_size = detect_blocksize(oracle)?;
+    let mut plaintext: Vec<u8> = Vec::new();
+
+    while plaintext.len() < detect_suffix_len(oracle)? {
+        // Build the guessing dictionary
+        let dict = build_dict(&plaintext, oracle, block_size)?;
+        // Build the payload
+        let payload = vec![65u8; block_size - plaintext.len() % block_size - 1];
+        // Get the first block out of the cipher
+        let start = plaintext.len() / block_size * block_size;
+        let block = &oracle.encrypt(&payload)?[start..start + block_size];
+        // Add found byte to plaintext
+        let found_char = find_char_in_dict(&dict, &block)?;
+        plaintext.push(found_char);
+    }
+
+    Ok(plaintext)
 }

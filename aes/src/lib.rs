@@ -218,3 +218,10 @@ pub fn decrypt_aes_128_cbc(input: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8
 
     Ok(clear)
 }
+
+pub fn blocks_and_padding(len: usize, bs: usize) -> (usize, usize) {
+    let blocks = len + bs - 1 / bs;
+    let padding = blocks * bs - len;
+
+    (blocks, padding)
+}

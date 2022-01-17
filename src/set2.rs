@@ -4,7 +4,8 @@ extern crate cookie_oracle;
 
 extern crate hex;
 
-use aes_oracle::*;
+use aes::padding_pkcs7;
+use oracle::Oracle;
 use rust_cryptopals::*;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
@@ -69,27 +70,7 @@ pub fn challenge12() -> Result<()> {
         false => panic!("Oracle should be ECB and was not detected as such."),
     }
 
-    let mut plaintext: Vec<u8> = Vec::new();
-
-    let dict = build_dict(&plaintext, &oracle, block_size)?;
-    let payload = vec![0u8; block_size - 1];
-    let c = oracle.encrypt(&payload)?[0..block_size].to_vec();
-    let first_byte = find_char_in_dict(&dict, &c)?;
-
-    println!("First byte: {} - {}", first_byte as char, first_byte);
-
-    while plaintext.len() < suffix.len() {
-        // Build the guessing dictionary
-        let dict = build_dict(&plaintext, &oracle, block_size)?;
-        // Build the payload
-        let payload = vec![0u8; block_size - plaintext.len() % block_size - 1];
-        // Get the first block out of the cipher
-        let start = plaintext.len() / block_size * block_size;
-        let block = &oracle.encrypt(&payload)?[start..start + block_size];
-        // Add found byte to plaintext
-        let found_char = find_char_in_dict(&dict, &block)?;
-        plaintext.push(found_char);
-    }
+    let plaintext = recover_ecb_suffix(&oracle)?;
 
     println!(
         "Answer of Set 2 Challenge 12: {}...",
@@ -103,5 +84,48 @@ pub fn challenge12() -> Result<()> {
 pub fn challenge13() -> Result<()> {
     let oracle = cookie_oracle::ProfileOracle::new();
 
+    println!("---- [START] Challenge 13 ----");
+
+    let block_size = detect_blocksize(&oracle)?;
+    println!("Detected block size: {}", block_size);
+
+    let prefix_len = detect_prefix_len(&oracle)?;
+    println!("Prefix length: {}", prefix_len);
+
+    let (nb_prefix_blocks, nb_prefix_padding) = aes::blocks_and_padding(prefix_len, block_size);
+    let mut target = b"admin".to_vec();
+    padding_pkcs7(&mut target, block_size)?;
+    println!("Padded target: {:?}", target);
+    let mut payload = vec![0; nb_prefix_padding];
+    payload.extend_from_slice(&target);
+
+    let target_last_block = &oracle
+        .encrypt(&payload)?
+        .split_off(nb_prefix_blocks * block_size)[0..block_size];
+
+    let presuflen = detect_prefix_plus_suffix_len(&oracle)?;
+    println!("Prefix + suffix len: {}", presuflen);
+    let (chunks_count, fill_len) = aes::blocks_and_padding(presuflen, block_size);
+    let mut forged_profile = oracle.encrypt(&vec![0; fill_len + "user".len()])?;
+
+    println!(
+        "Should be equal: {} == {}",
+        (chunks_count + 1) * block_size,
+        forged_profile.len()
+    );
+
+    forged_profile[chunks_count * block_size..].copy_from_slice(target_last_block);
+
+    let ex_cipher = &oracle.encrypt(b"user420@example.com")?;
+    let ex_profile = &oracle.profile_from_encrypted(&ex_cipher)?;
+
+    println!("Example profile:\n{}", ex_profile);
+
+    let dprofile = oracle.profile_from_encrypted(&forged_profile)?;
+
+    println!("Forged profile: {}", dprofile);
+    println!("Forged is admin: {}", dprofile.is_admin());
+
+    println!("---- [END] Challenge 13 ----");
     Ok(())
 }

@@ -15,3 +15,5 @@ path = "../hex"
 [dependencies.aes]
 path = "../aes"
 
+[dependencies.oracle]
+path = "../oracle"

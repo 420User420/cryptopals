@@ -3,16 +3,9 @@ extern crate hex;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
+use oracle::Oracle;
 use rand::Rng;
 use std::fmt;
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
 
 pub struct AesOracle {
     pub mode: aes::MODE,
@@ -20,10 +13,6 @@ pub struct AesOracle {
     iv: Option<[u8; 16]>,
     suffix: Option<Vec<u8>>,
     prefix: Option<Vec<u8>>,
-}
-
-pub trait Oracle {
-    fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>>;
 }
 
 pub fn new(fixed_mode: Option<aes::MODE>, fixed_suffix: Option<&[u8]>) -> AesOracle {

@@ -30,6 +30,9 @@ path = "./base64"
 [dependencies.aes]
 path = "./aes"
 
+[dependencies.oracle]
+path = "./oracle"
+
 [dependencies.aes_oracle]
 path = "./aes_oracle"
 

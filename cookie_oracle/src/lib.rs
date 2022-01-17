@@ -1,3 +1,4 @@
+use oracle::Oracle;
 use rand::Rng;
 use std::borrow::Cow;
 use std::fmt;
@@ -48,12 +49,21 @@ pub struct Profile {
     role: Role,
 }
 
+impl fmt::Display for Profile {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Email: {}\nUID: {}\nRole: {}",
+            self.email, self.uid, self.role
+        )
+    }
+}
+
 impl Profile {
     pub fn encode(&self) -> Result<String> {
-        Ok(format!(
-            "email={}&uid={}&role={}",
-            self.email, self.uid, self.role
-        ))
+        let s = format!("email={}&uid={}&role={}", self.email, self.uid, self.role);
+        // println!("Encode: {}", s);
+        Ok(s)
     }
 
     pub fn is_admin(&self) -> bool {
@@ -82,6 +92,30 @@ impl Profile {
 
 pub struct ProfileOracle {
     key: [u8; 16],
+    uid: u32,
+}
+
+impl Oracle for ProfileOracle {
+    fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>> {
+        /* let clean_email = data
+            .iter()
+            .filter(|c| **c < 127)
+            .cloned()
+            .collect::<Vec<u8>>();
+        */
+        if data
+            .iter()
+            .any(|&c| !c.is_ascii() || c == b'&' || c == b'=')
+        {
+            panic!("Invalid input");
+        }
+
+        self.encrypt_profile(&Profile {
+            email: String::from_utf8(data.to_vec())?,
+            uid: self.uid,
+            role: Role::User,
+        })
+    }
 }
 
 impl ProfileOracle {
@@ -92,30 +126,28 @@ impl ProfileOracle {
             key[i] = rng.gen::<u8>();
         }
 
-        ProfileOracle { key }
+        let uid = rng.gen::<u32>();
+
+        ProfileOracle { key, uid }
     }
 
     pub fn encrypt_profile(&self, profile: &Profile) -> Result<Vec<u8>> {
-        Ok(aes::encrypt_aes_128_ecb(
-            profile.encode()?.as_bytes(),
-            &self.key,
-        )?)
+        aes::encrypt_aes_128_ecb(profile.encode()?.as_bytes(), &self.key)
     }
 
     pub fn profile_from_encrypted(&self, enc: &Vec<u8>) -> Result<Profile> {
         let dec = aes::decrypt_aes_128_ecb(enc, &self.key)?;
 
-        Ok(Profile::from_encoded(&hex::vec_u8_to_string(dec))?)
+        Profile::from_encoded(&String::from_utf8(dec)?)
     }
 
-    pub fn profile_for(&self, email: &str) -> Profile {
-        let mut rng = rand::thread_rng();
-        let uid = rng.gen::<u32>();
+    pub fn profile_for(&self, email: &str) -> Result<Vec<u8>> {
+        let uid = self.uid;
 
-        Profile {
-            email: email.to_string().replace("&", "").replace("=", ""),
+        self.encrypt_profile(&Profile {
+            email: email.to_string().replace("&", "%26").replace("=", "%3D"),
             uid,
             role: Role::User,
-        }
+        })
     }
 }
