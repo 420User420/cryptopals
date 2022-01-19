@@ -1,5 +1,5 @@
 use std::fmt;
-// use openssl::symm;
+// use openssl::symm;>
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
 #[cfg(test)]
@@ -110,6 +110,46 @@ pub fn padding_pkcs7(input: &mut Vec<u8>, block_size: usize) -> Result<()> {
     for _ in 0..pad_value {
         input.push(pad_value);
     }
+
+    Ok(())
+}
+
+pub fn padding_is_valid(data: &[u8], block_size: usize) -> bool {
+    if data.len() == 0 {
+        return false;
+    }
+
+    let last_byte = data[data.len() - 1];
+
+    // If not respect block size
+    if data.len() % block_size != 0 {
+        return false;
+    }
+
+    if data.len() < last_byte as usize {
+        return false;
+    }
+
+    for i in 0..last_byte as usize {
+        // If invalid byte in padding
+        if data[data.len() - i] != last_byte {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+pub fn unpad_pkcs7(data: &mut Vec<u8>, block_size: usize) -> Result<()> {
+    if !padding_is_valid(data, block_size) {
+        panic!(
+            "Cannot unpad data, invalid padding for block size {}",
+            block_size
+        )
+    }
+
+    let new_length = data.len() - data[data.len() - 1] as usize;
+    data.truncate(new_length);
 
     Ok(())
 }
