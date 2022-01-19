@@ -1,4 +1,5 @@
 extern crate aes;
+extern crate base64;
 extern crate hex;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
@@ -128,5 +129,46 @@ impl fmt::Display for AesOracle {
                 self.mode,
             ),
         }
+    }
+}
+
+pub struct OracleChallenge14 {
+    aes_oracle: AesOracle,
+}
+
+impl OracleChallenge14 {
+    pub fn new() -> Result<Self> {
+        let mut rng = rand::thread_rng();
+
+        let mode = aes::MODE::ECB;
+
+        let mut key = [0u8; 16];
+        for i in 0..16 {
+            key[i] = rng.gen();
+        }
+
+        let suffix = base64::string_to_vec_u8("Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK")?;
+
+        let prefix_len = rng.gen_range(5..25);
+        let mut prefix = vec![0u8; prefix_len];
+        for i in 0..prefix_len {
+            prefix[i] = rng.gen();
+        }
+
+        Ok(OracleChallenge14 {
+            aes_oracle: AesOracle {
+                mode,
+                key,
+                iv: None,
+                prefix: Some(prefix),
+                suffix: Some(suffix),
+            },
+        })
+    }
+}
+
+impl Oracle for OracleChallenge14 {
+    fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>> {
+        self.aes_oracle.encrypt(data)
     }
 }

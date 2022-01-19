@@ -17,3 +17,6 @@ path = "../hex"
 
 [dependencies.oracle]
 path = "../oracle"
+
+[dependencies.base64]
+path = "../base64"
